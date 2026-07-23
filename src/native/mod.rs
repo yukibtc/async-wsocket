@@ -156,6 +156,9 @@ where
 
 #[cfg(test)]
 mod tests {
+    use tokio::net::TcpListener;
+    use tokio_tungstenite::tungstenite::handshake::server::Request;
+
     use super::*;
 
     #[test]
@@ -168,5 +171,31 @@ mod tests {
 
         assert_eq!(request.headers().get("user-agent").unwrap(), "nostr-sdk");
         assert_eq!(request.headers().get("host").unwrap(), "relay.example.com");
+    }
+
+    #[tokio::test]
+    #[allow(clippy::result_large_err)]
+    async fn connect_with_headers_sends_headers_in_upgrade_request() {
+        let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let address = listener.local_addr().unwrap();
+
+        let server = tokio::spawn(async move {
+            let (stream, _) = listener.accept().await.unwrap();
+            tokio_tungstenite::accept_hdr_async(stream, |request: &Request, response| {
+                assert_eq!(request.headers().get("user-agent").unwrap(), "nostr-sdk");
+                Ok(response)
+            })
+            .await
+            .unwrap();
+        });
+
+        let url = Url::parse(&format!("ws://{address}")).unwrap();
+        let mut headers = HeaderMap::new();
+        headers.insert("user-agent", HeaderValue::from_static("nostr-sdk"));
+
+        connect_with_headers(&url, &ConnectionMode::Direct, headers)
+            .await
+            .unwrap();
+        server.await.unwrap();
     }
 }
