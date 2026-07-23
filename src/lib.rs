@@ -24,6 +24,8 @@ pub mod wasm;
 pub use self::message::Message;
 #[cfg(not(target_arch = "wasm32"))]
 pub use self::native::Error;
+#[cfg(not(target_arch = "wasm32"))]
+pub use self::native::{HeaderMap, HeaderName, HeaderValue};
 pub use self::socket::WebSocket;
 #[cfg(target_arch = "wasm32")]
 pub use self::wasm::Error;
@@ -57,4 +59,15 @@ impl ConnectionMode {
 #[inline]
 pub async fn connect(url: &Url, mode: &ConnectionMode) -> Result<WebSocket, Error> {
     WebSocket::connect(url, mode).await
+}
+
+/// Connect with additional HTTP headers in the WebSocket upgrade request.
+#[cfg(not(target_arch = "wasm32"))]
+#[inline]
+pub async fn connect_with_headers(
+    url: &Url,
+    mode: &ConnectionMode,
+    headers: HeaderMap,
+) -> Result<WebSocket, Error> {
+    WebSocket::connect_with_headers(url, mode, headers).await
 }

@@ -55,6 +55,16 @@ impl WebSocket {
 
         Ok(socket)
     }
+
+    /// Connect with additional HTTP headers in the WebSocket upgrade request.
+    #[cfg(not(target_arch = "wasm32"))]
+    pub async fn connect_with_headers(
+        url: &Url,
+        mode: &ConnectionMode,
+        headers: crate::native::HeaderMap,
+    ) -> Result<Self, Error> {
+        crate::native::connect_with_headers(url, mode, headers).await
+    }
 }
 
 impl Sink<Message> for WebSocket {

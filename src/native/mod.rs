@@ -8,6 +8,8 @@ use std::net::SocketAddr;
 
 use tokio::io::{AsyncRead, AsyncWrite};
 use tokio::net::TcpStream;
+use tokio_tungstenite::tungstenite::client::IntoClientRequest;
+pub use tokio_tungstenite::tungstenite::http::{HeaderMap, HeaderName, HeaderValue};
 use tokio_tungstenite::tungstenite::protocol::Role;
 pub use tokio_tungstenite::tungstenite::Message;
 use tokio_tungstenite::MaybeTlsStream;
@@ -25,14 +27,23 @@ use crate::socket::WebSocket;
 use crate::ConnectionMode;
 
 pub async fn connect(url: &Url, mode: &ConnectionMode) -> Result<WebSocket, Error> {
+    connect_with_headers(url, mode, HeaderMap::new()).await
+}
+
+/// Connect with additional HTTP headers in the WebSocket upgrade request.
+pub async fn connect_with_headers(
+    url: &Url,
+    mode: &ConnectionMode,
+    headers: HeaderMap,
+) -> Result<WebSocket, Error> {
     match mode {
-        ConnectionMode::Direct => connect_direct(url).await,
+        ConnectionMode::Direct => connect_direct(url, headers).await,
         #[cfg(feature = "socks")]
-        ConnectionMode::Proxy(proxy) => connect_proxy(url, *proxy).await,
+        ConnectionMode::Proxy(proxy) => connect_proxy(url, *proxy, headers).await,
     }
 }
 
-async fn connect_direct(url: &Url) -> Result<WebSocket, Error> {
+async fn connect_direct(url: &Url, headers: HeaderMap) -> Result<WebSocket, Error> {
     let host: &str = url.host_str().ok_or_else(Error::empty_host)?;
     let port: u16 = url
         .port_or_known_default()
@@ -42,11 +53,15 @@ async fn connect_direct(url: &Url) -> Result<WebSocket, Error> {
 
     let tcp_stream: TcpStream = tokio_happy_eyeballs::connect(host).await?;
 
-    connect_stream(url, tcp_stream).await
+    connect_stream(url, tcp_stream, headers).await
 }
 
 #[cfg(feature = "socks")]
-async fn connect_proxy(url: &Url, proxy: SocketAddr) -> Result<WebSocket, Error> {
+async fn connect_proxy(
+    url: &Url,
+    proxy: SocketAddr,
+    headers: HeaderMap,
+) -> Result<WebSocket, Error> {
     let host: &str = url.host_str().ok_or_else(Error::empty_host)?;
     let port: u16 = url
         .port_or_known_default()
@@ -54,11 +69,15 @@ async fn connect_proxy(url: &Url, proxy: SocketAddr) -> Result<WebSocket, Error>
     let addr: String = format!("{host}:{port}");
 
     let conn: TcpStream = TcpSocks5Stream::connect(proxy, addr).await?;
-    connect_stream(url, conn).await
+    connect_stream(url, conn, headers).await
 }
 
-async fn connect_stream(url: &Url, stream: TcpStream) -> Result<WebSocket, Error> {
-    let stream = client_async(url, stream).await?;
+async fn connect_stream(
+    url: &Url,
+    stream: TcpStream,
+    headers: HeaderMap,
+) -> Result<WebSocket, Error> {
+    let stream = client_async(url, stream, headers).await?;
     Ok(WebSocket::tokio(Box::new(stream)))
 }
 
@@ -73,8 +92,10 @@ async fn connect_stream(url: &Url, stream: TcpStream) -> Result<WebSocket, Error
 async fn client_async(
     url: &Url,
     stream: TcpStream,
+    headers: HeaderMap,
 ) -> Result<WebSocketStream<MaybeTlsStream<TcpStream>>, Error> {
-    let (stream, _) = Box::pin(tokio_tungstenite::client_async_tls(url.as_str(), stream)).await?;
+    let request = request_with_headers(url, headers)?;
+    let (stream, _) = Box::pin(tokio_tungstenite::client_async_tls(request, stream)).await?;
     Ok(stream)
 }
 
@@ -87,6 +108,7 @@ async fn client_async(
 async fn client_async(
     url: &Url,
     stream: TcpStream,
+    headers: HeaderMap,
 ) -> Result<WebSocketStream<MaybeTlsStream<TcpStream>>, Error> {
     if url.scheme() == "wss" {
         return Err(tokio_tungstenite::tungstenite::Error::Url(
@@ -95,12 +117,22 @@ async fn client_async(
         .into());
     }
 
+    let request = request_with_headers(url, headers)?;
     let (stream, _) = Box::pin(tokio_tungstenite::client_async(
-        url.as_str(),
+        request,
         MaybeTlsStream::Plain(stream),
     ))
     .await?;
     Ok(stream)
+}
+
+fn request_with_headers(
+    url: &Url,
+    headers: HeaderMap,
+) -> Result<tokio_tungstenite::tungstenite::handshake::client::Request, Error> {
+    let mut request = url.as_str().into_client_request()?;
+    request.headers_mut().extend(headers);
+    Ok(request)
 }
 
 #[inline]
@@ -120,4 +152,21 @@ where
     S: AsyncRead + AsyncWrite + Unpin,
 {
     WebSocketStream::from_raw_socket(raw_stream, Role::Server, None).await
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn request_with_headers_adds_headers_to_upgrade_request() {
+        let url = Url::parse("wss://relay.example.com").unwrap();
+        let mut headers = HeaderMap::new();
+        headers.insert("user-agent", HeaderValue::from_static("nostr-sdk"));
+
+        let request = request_with_headers(&url, headers).unwrap();
+
+        assert_eq!(request.headers().get("user-agent").unwrap(), "nostr-sdk");
+        assert_eq!(request.headers().get("host").unwrap(), "relay.example.com");
+    }
 }
