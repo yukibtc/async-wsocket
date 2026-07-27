@@ -12,14 +12,14 @@ use crate::wasm::CloseEvent;
 pub enum Error {
     /// UTF-8 error
     Utf8(Utf8Error),
-    /// Invalid input to [WsState::try_from( u16 )](crate::WsState).
+    /// Invalid state returned by the browser WebSocket API.
     InvalidWsState {
         /// The user supplied value that is invalid.
         supplied: u16,
     },
-    /// When trying to send and [WsState](crate::WsState) is anything but [WsState::Open](crate::WsState::Open) this error is returned.
+    /// The connection is not open and cannot accept messages.
     ConnectionNotOpen,
-    /// An invalid URL was given to [WsMeta::connect](crate::WsMeta::connect), please see:
+    /// An invalid URL was given to [`WebSocket::connect`](crate::WebSocket::connect), please see:
     /// [HTML Living Standard](https://html.spec.whatwg.org/multipage/web-sockets.html#dom-websocket).
     InvalidUrl {
         /// The user supplied value that is invalid.
@@ -45,9 +45,8 @@ pub enum Error {
     InvalidEncoding,
     /// When converting the JavaScript Message into a WsMessage, it's not possible to
     /// convert Blob type messages, as Blob is a streaming type, that needs to be read
-    /// asynchronously. If you are using the type without setting up the connection with
-    /// [`WsMeta::connect`](crate::WsMeta::connect), you have to make sure to set the binary
-    /// type of the connection to `ArrayBuffer`.
+    /// asynchronously. Connections created by this crate use `ArrayBuffer` for binary
+    /// messages.
     ///
     /// Happens in `impl TryFrom< MessageEvent > for WsMessage`.
     CantDecodeBlob,

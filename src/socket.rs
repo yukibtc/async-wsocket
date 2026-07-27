@@ -133,3 +133,13 @@ impl Stream for WebSocket {
         }
     }
 }
+
+#[cfg(target_arch = "wasm32")]
+#[allow(dead_code)]
+fn assert_wasm_send(url: &Url, mode: &ConnectionMode) {
+    fn assert_type<T: Send>() {}
+    fn assert_value<T: Send>(_: T) {}
+
+    assert_type::<WebSocket>();
+    assert_value(WebSocket::connect(url, mode));
+}
