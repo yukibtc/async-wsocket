@@ -10,7 +10,7 @@ use tokio::io::{AsyncRead, AsyncWrite};
 use tokio::net::TcpStream;
 use tokio_tungstenite::tungstenite::client::IntoClientRequest;
 pub use tokio_tungstenite::tungstenite::http::{HeaderMap, HeaderName, HeaderValue};
-use tokio_tungstenite::tungstenite::protocol::Role;
+pub use tokio_tungstenite::tungstenite::protocol::{Role, WebSocketConfig};
 pub use tokio_tungstenite::tungstenite::Message;
 use tokio_tungstenite::MaybeTlsStream;
 pub use tokio_tungstenite::WebSocketStream;
@@ -147,11 +147,15 @@ where
 ///
 /// Useful for when using [hyper] or [warp] or any other HTTP server
 #[inline]
-pub async fn take_upgraded<S>(raw_stream: S) -> WebSocketStream<S>
+pub async fn take_upgraded<S>(
+    raw_stream: S,
+    role: Role,
+    config: Option<WebSocketConfig>,
+) -> WebSocketStream<S>
 where
     S: AsyncRead + AsyncWrite + Unpin,
 {
-    WebSocketStream::from_raw_socket(raw_stream, Role::Server, None).await
+    WebSocketStream::from_raw_socket(raw_stream, role, config).await
 }
 
 #[cfg(test)]
