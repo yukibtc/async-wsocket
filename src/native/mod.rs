@@ -143,21 +143,6 @@ where
     Ok(tokio_tungstenite::accept_async(raw_stream).await?)
 }
 
-/// Take an already upgraded websocket connection
-///
-/// Useful for when using [hyper] or [warp] or any other HTTP server
-#[inline]
-pub async fn take_upgraded<S>(
-    raw_stream: S,
-    role: Role,
-    config: Option<WebSocketConfig>,
-) -> WebSocketStream<S>
-where
-    S: AsyncRead + AsyncWrite + Unpin,
-{
-    WebSocketStream::from_raw_socket(raw_stream, role, config).await
-}
-
 #[cfg(test)]
 mod tests {
     use tokio::net::TcpListener;
