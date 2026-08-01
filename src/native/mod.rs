@@ -6,14 +6,13 @@
 #[cfg(feature = "socks")]
 use std::net::SocketAddr;
 
-use tokio::io::{AsyncRead, AsyncWrite};
 use tokio::net::TcpStream;
 use tokio_tungstenite::tungstenite::client::IntoClientRequest;
 pub use tokio_tungstenite::tungstenite::http::{HeaderMap, HeaderName, HeaderValue};
 pub use tokio_tungstenite::tungstenite::protocol::{Role, WebSocketConfig};
 pub use tokio_tungstenite::tungstenite::Message;
 use tokio_tungstenite::MaybeTlsStream;
-pub use tokio_tungstenite::WebSocketStream;
+pub use tokio_tungstenite::{accept_async, accept_async_with_config, WebSocketStream};
 use url::Url;
 
 mod error;
@@ -133,14 +132,6 @@ fn request_with_headers(
     let mut request = url.as_str().into_client_request()?;
     request.headers_mut().extend(headers);
     Ok(request)
-}
-
-#[inline]
-pub async fn accept<S>(raw_stream: S) -> Result<WebSocketStream<S>, Error>
-where
-    S: AsyncRead + AsyncWrite + Unpin,
-{
-    Ok(tokio_tungstenite::accept_async(raw_stream).await?)
 }
 
 #[cfg(test)]
