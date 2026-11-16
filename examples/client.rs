@@ -2,9 +2,10 @@
 // Distributed under the MIT software license
 
 use async_wsocket::prelude::*;
+use bytes::Bytes;
 use futures_util::{SinkExt, StreamExt};
 
-const NONCE: u64 = 123456789;
+const NONCE: Bytes = Bytes::from_static(&123456789u64.to_be_bytes());
 
 #[tokio::main]
 async fn main() {
@@ -17,13 +18,12 @@ async fn main() {
     // let (mut tx, mut rx) = socket.split();
 
     // Send ping
-    let nonce = NONCE.to_be_bytes().to_vec();
-    socket.send(Message::Ping(nonce.clone())).await.unwrap();
+    socket.send(Message::Ping(NONCE)).await.unwrap();
 
     // Listen for messages
     while let Some(msg) = socket.next().await {
         if let Ok(Message::Pong(bytes)) = msg {
-            assert_eq!(nonce, bytes);
+            assert_eq!(NONCE, bytes);
             println!("Pong match!");
             break;
         }

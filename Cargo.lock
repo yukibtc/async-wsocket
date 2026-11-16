@@ -30,6 +30,7 @@ dependencies = [
 name = "async-wsocket"
 version = "0.17.0"
 dependencies = [
+ "bytes",
  "futures",
  "futures-util",
  "js-sys",
@@ -39,6 +40,7 @@ dependencies = [
  "tokio-socks",
  "tokio-tungstenite",
  "url",
+ "utf8bytes",
  "wasm-bindgen",
  "wasm-bindgen-futures",
  "web-sys",
@@ -140,9 +142,9 @@ checksum = "1fd0f2584146f6f2ef48085050886acf353beff7305ebd1ae69500e27c67f64b"
 
 [[package]]
 name = "bytes"
-version = "1.9.0"
+version = "1.12.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "325918d6fe32f23b19878fe4b34794ae41fc19ddbe53b10571a4874d44ffd39b"
+checksum = "fc652a48c352aef3ea3aed32080501cf3ef6ed5da78602a020c991775b0aff04"
 
 [[package]]
 name = "cc"
@@ -281,7 +283,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "39cab71617ae0d63f51a36d69f866391735b51691dbda63cf6f96d042b63efeb"
 dependencies = [
  "libc",
- "windows-sys 0.52.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -1394,6 +1396,15 @@ name = "utf8_iter"
 version = "1.0.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b6c140620e7ffbb22c2dee59cafe6084a59b5ffc27a8859a5f0d494b5d52b6be"
+
+[[package]]
+name = "utf8bytes"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0272f8af8bcfe862654a317db63c318bb677a349b841ab68dd6976d0fe5cb113"
+dependencies = [
+ "bytes",
+]
 
 [[package]]
 name = "vcpkg"

@@ -17,9 +17,9 @@ impl TryFrom<MessageEvent> for Message {
 
     fn try_from(evt: MessageEvent) -> Result<Self, Self::Error> {
         match evt.data() {
-            d if d.is_instance_of::<ArrayBuffer>() => {
-                Ok(Message::Binary(Uint8Array::new(d.unchecked_ref()).to_vec()))
-            }
+            d if d.is_instance_of::<ArrayBuffer>() => Ok(Message::Binary(
+                Uint8Array::new(d.unchecked_ref()).to_vec().into(),
+            )),
 
             // We don't allow invalid encodings. In principle if needed,
             // we could add a variant to WsMessage with a CString or an OsString
@@ -29,7 +29,7 @@ impl TryFrom<MessageEvent> for Message {
             // idea to begin with. If you need data that is not a valid string, use a binary
             // message.
             d if d.is_string() => match d.as_string() {
-                Some(text) => Ok(Message::Text(text)),
+                Some(text) => Ok(Message::Text(text.into())),
                 None => Err(Error::InvalidEncoding),
             },
 
